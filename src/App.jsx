@@ -1,34 +1,46 @@
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import Navbar from "./Components/Navbar";
 import DataCard from "./Components/DataCard";
 import Footer from "./Components/Footer";
+import { span } from "framer-motion/client";
 
 const App = () => {
   const [data, setData] = useState([]);
   const [isloading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  async function fetchNews() {
+  const fetchNews = useCallback(async () => {
     setIsLoading(true); // Show loading spinner
-    const response = await fetch("https://swapi.dev/api/films");
-
-    const films = await response.json();
-    const transfomedmovie = films.results.map((movie) => {
-      return {
-        id: movie.episode_id,
-        title: movie.title,
-        director: movie.director,
-        release_date: movie.release_date,
-        artist: movie.opening_crawl,
-      };
-    });
-    setData(transfomedmovie);
+    setError(null); // Clear any previous error message
+    const response = await fetch("https://swapi.dev/api/films/");
+    try {
+      if (!response.ok) {
+        throw new Error("Network response was not ok");
+      }
+      const films = await response.json();
+      const transfomedmovie = films.results.map((movie) => {
+        return {
+          id: movie.episode_id,
+          title: movie.title,
+          director: movie.director,
+          release_date: movie.release_date,
+          artist: movie.opening_crawl,
+        };
+      });
+      setData(transfomedmovie);
+      setIsLoading(false); // Hide loading spinner
+    } catch (error) {
+      setError(error.massage);
+    }
     setIsLoading(false); // Hide loading spinner
-  }
-
+  }, []);
+  useEffect(() => {
+    fetchNews();
+  }, [fetchNews]);
   return (
-    <div className=" min-h-screen">
+    <div className="">
       <Navbar />
-      <div className="max-w-2xl mx-auto my-10">
+      <div className="max-w-2xl min-h-screen mx-auto my-10">
         <div className="flex justify-center">
           <button
             onClick={fetchNews} // Trigger fetch when clicked
@@ -45,7 +57,8 @@ const App = () => {
               <DataCard item={item} key={index} /> // Display each item in a DataCard
             ))}
           {isloading && <p className="text-center">Loading ...</p>}
-          {!isloading && data.length === 0 && (
+          {!isloading && error && <span>{error}</span>}
+          {!isloading && data.length === 0 && !error && (
             <p className="text-center">Not found Movie yet .</p>
           )}
         </div>
